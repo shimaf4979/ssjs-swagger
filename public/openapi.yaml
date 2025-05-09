@@ -1,218 +1,51 @@
 openapi: 3.0.0
 info:
   title: SketchShifter API
-  description: SketchShifterアプリケーションのREST API
+  description: SketchShifter バックエンドAPIの仕様書
   version: 1.0.0
 servers:
-  - url: https://api.serendicode-sub.click
-    description: 本番環境API
+  - url: http://localhost:8080/api/v1
+    description: 開発サーバー
 
 tags:
   - name: 認証
-    description: ユーザー認証に関するエンドポイント
-  - name: ユーザー管理
-    description: ユーザープロフィール管理に関するエンドポイント
-  - name: 作品管理
-    description: 作品の投稿、取得、更新、削除に関するエンドポイント
-  - name: いいね管理
-    description: 作品へのいいね操作に関するエンドポイント
-  - name: コメント管理
-    description: 作品へのコメント操作に関するエンドポイント
-  - name: タグ管理
-    description: タグ一覧取得に関するエンドポイント
-  - name: システム
-    description: システム状態確認に関するエンドポイント
-
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-  
-  schemas:
-    User:
-      type: object
-      properties:
-        id:
-          type: integer
-        email:
-          type: string
-        name:
-          type: string
-        nickname:
-          type: string
-        bio:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-
-    Tag:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-
-    Work:
-      type: object
-      properties:
-        id:
-          type: integer
-        title:
-          type: string
-        description:
-          type: string
-        file_type:
-          type: string
-        file_name:
-          type: string
-        file_url:
-          type: string
-        thumbnail_type:
-          type: string
-        thumbnail_url:
-          type: string
-        code_shared:
-          type: boolean
-        code_content:
-          type: string
-        views:
-          type: integer
-        user_id:
-          type: integer
-        is_guest:
-          type: boolean
-        guest_nickname:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        user:
-          $ref: '#/components/schemas/User'
-        tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
-        likes_count:
-          type: integer
-        comments_count:
-          type: integer
-
-    ProcessingWork:
-      type: object
-      properties:
-        id:
-          type: integer
-        work_id:
-          type: integer
-        original_name:
-          type: string
-        pde_content:
-          type: string
-        js_content:
-          type: string
-        canvas_id:
-          type: string
-        status:
-          type: string
-          enum: [pending, processing, processed, error]
-        error_message:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-
-    Comment:
-      type: object
-      properties:
-        id:
-          type: integer
-        content:
-          type: string
-        work_id:
-          type: integer
-        user_id:
-          type: integer
-        is_guest:
-          type: boolean
-        guest_nickname:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-        user:
-          $ref: '#/components/schemas/User'
-
-    Like:
-      type: object
-      properties:
-        user_id:
-          type: integer
-        work_id:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-
-    Error:
-      type: object
-      properties:
-        error:
-          type: string
-          
-    HealthStatus:
-      type: object
-      properties:
-        status:
-          type: string
-        uptime:
-          type: string
-        timestamp:
-          type: string
-        version:
-          type: string
+  - name: ユーザー
+  - name: 作品
+  - name: コメント
+  - name: ユーザー情報
+  - name: プロジェクト
+  - name: タスク
 
 paths:
-  # システム
   /health:
     get:
       tags:
-        - システム
+        - 認証
       summary: ヘルスチェック
-      description: APIの稼働状態を確認します
+      description: APIサーバーの状態を確認する
       responses:
         '200':
-          description: 成功
+          description: 正常に動作している
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthStatus'
+                type: object
+                properties:
+                  status:
+                    type: string
+                  uptime:
+                    type: string
+                  timestamp:
+                    type: string
+                  version:
+                    type: string
 
-  # 認証
-  /register:
+  /auth/register:
     post:
       tags:
         - 認証
       summary: ユーザー登録
-      description: 新しいユーザーを登録します
+      description: 新しいユーザーを登録する
       requestBody:
         required: true
         content:
@@ -230,6 +63,7 @@ paths:
                   format: email
                 password:
                   type: string
+                  format: password
                   minLength: 6
                 name:
                   type: string
@@ -249,23 +83,15 @@ paths:
                     type: string
         '400':
           description: 無効なリクエスト
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '409':
-          description: メールアドレスが既に使用されています
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: メールアドレスが既に使用されている
 
-  /login:
+  /auth/login:
     post:
       tags:
         - 認証
       summary: ログイン
-      description: 既存ユーザーとしてログインします
+      description: ユーザー認証を行い、JWTトークンを取得する
       requestBody:
         required: true
         content:
@@ -281,6 +107,7 @@ paths:
                   format: email
                 password:
                   type: string
+                  format: password
       responses:
         '200':
           description: ログイン成功
@@ -295,20 +122,15 @@ paths:
                     type: string
         '401':
           description: 認証失敗
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
-  # ユーザー管理
-  /users/me:
+  /auth/me:
     get:
       tags:
-        - ユーザー管理
-      summary: 自分のプロフィール取得
-      description: ログインユーザーの情報を取得します
+        - 認証
+      summary: 自分のユーザー情報を取得
+      description: JWTトークンから認証されたユーザー情報を取得する
       security:
-        - BearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: 成功
@@ -317,169 +139,80 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
         '401':
-          description: 認証が必要です
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: 認証が必要
 
-  /users/{id}:
-    get:
+  /auth/change-password:
+    post:
       tags:
-        - ユーザー管理
-      summary: ユーザー情報取得
-      description: 指定されたIDのユーザー情報を取得します
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  user:
-                    $ref: '#/components/schemas/User'
-        '404':
-          description: ユーザーが見つかりません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /users/my-works:
-    get:
-      tags:
-        - ユーザー管理
-        - 作品管理
-      summary: 自分の作品一覧取得
-      description: ログインユーザーの作品一覧を取得します
+        - 認証
+      summary: パスワード変更
+      description: ユーザーのパスワードを変更する
       security:
-        - BearerAuth: []
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - current_password
+                - new_password
+              properties:
+                current_password:
+                  type: string
+                  format: password
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 6
       responses:
         '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  works:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Work'
-                  total:
-                    type: integer
-                  pages:
-                    type: integer
-                  page:
-                    type: integer
+          description: パスワード変更成功
+        '400':
+          description: 無効なリクエスト
         '401':
-          description: 認証が必要です
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: 認証が必要
 
-  /users/{id}/works:
-    get:
-      tags:
-        - ユーザー管理
-        - 作品管理
-      summary: ユーザーの作品一覧取得
-      description: 指定されたユーザーの作品一覧を取得します
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  works:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Work'
-                  total:
-                    type: integer
-                  pages:
-                    type: integer
-                  page:
-                    type: integer
-        '404':
-          description: ユーザーが見つかりません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  # 作品管理
   /works:
     get:
       tags:
-        - 作品管理
-      summary: 作品一覧取得
-      description: 作品一覧を検索条件に基づいて取得します
+        - 作品
+      summary: 作品一覧を取得
+      description: 作品の一覧を取得する（検索、フィルタリング、ソート機能付き）
       parameters:
         - name: page
           in: query
+          description: ページ番号
           schema:
             type: integer
             default: 1
         - name: limit
           in: query
+          description: 1ページあたりの件数
           schema:
             type: integer
             default: 20
         - name: search
           in: query
+          description: 検索キーワード
           schema:
             type: string
         - name: tag
           in: query
+          description: タグでフィルタリング
           schema:
             type: string
         - name: user_id
           in: query
+          description: ユーザーIDでフィルタリング
           schema:
             type: integer
         - name: sort
           in: query
+          description: ソート順（newest, popular, likes）
           schema:
             type: string
-            enum: [newest, popular, likes]
             default: newest
       responses:
         '200':
@@ -502,11 +235,11 @@ paths:
 
     post:
       tags:
-        - 作品管理
-      summary: 作品投稿
-      description: 新しい作品を投稿します
+        - 作品
+      summary: 作品を作成
+      description: 新しい作品を作成する
       security:
-        - BearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -515,44 +248,26 @@ paths:
               type: object
               required:
                 - title
+                - pde_content
               properties:
                 title:
                   type: string
                 description:
                   type: string
-                file:
-                  type: string
-                  format: binary
-                file_url:
-                  type: string
-                file_public_id:
-                  type: string
-                file_type:
-                  type: string
-                file_name:
+                pde_content:
                   type: string
                 thumbnail:
                   type: string
                   format: binary
-                thumbnail_url:
-                  type: string
-                thumbnail_public_id:
-                  type: string
-                thumbnail_type:
-                  type: string
                 code_shared:
                   type: boolean
-                code_content:
-                  type: string
+                  default: false
                 tags:
                   type: string
-                is_guest:
-                  type: boolean
-                guest_nickname:
-                  type: string
+                  description: カンマ区切りのタグリスト
       responses:
         '201':
-          description: 投稿成功
+          description: 作成成功
           content:
             application/json:
               schema:
@@ -562,23 +277,15 @@ paths:
                     $ref: '#/components/schemas/Work'
         '400':
           description: 無効なリクエスト
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '401':
-          description: 認証が必要です
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: 認証が必要
 
   /works/{id}:
     get:
       tags:
-        - 作品管理
-      summary: 作品詳細取得
-      description: 指定されたIDの作品詳細を取得します
+        - 作品
+      summary: 作品を取得
+      description: IDで作品を取得する
       parameters:
         - name: id
           in: path
@@ -595,22 +302,16 @@ paths:
                 properties:
                   work:
                     $ref: '#/components/schemas/Work'
-                  processing_work:
-                    $ref: '#/components/schemas/ProcessingWork'
         '404':
           description: 作品が見つかりません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
     put:
       tags:
-        - 作品管理
-      summary: 作品更新
-      description: 指定されたIDの作品を更新します
+        - 作品
+      summary: 作品を更新
+      description: 既存の作品を更新する
       security:
-        - BearerAuth: []
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -628,29 +329,16 @@ paths:
                   type: string
                 description:
                   type: string
-                file:
+                pde_content:
+                  type: string
+                thumbnail:
                   type: string
                   format: binary
-                file_url:
-                  type: string
-                file_public_id:
-                  type: string
-                file_type:
-                  type: string
-                file_name:
-                  type: string
-                thumbnail_url:
-                  type: string
-                thumbnail_public_id:
-                  type: string
-                thumbnail_type:
-                  type: string
                 code_shared:
                   type: boolean
-                code_content:
-                  type: string
                 tags:
                   type: string
+                  description: カンマ区切りのタグリスト
       responses:
         '200':
           description: 更新成功
@@ -663,36 +351,20 @@ paths:
                     $ref: '#/components/schemas/Work'
         '400':
           description: 無効なリクエスト
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '401':
-          description: 認証が必要です
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: 認証が必要
         '403':
-          description: この作品を更新する権限がありません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: 権限がありません
         '404':
           description: 作品が見つかりません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
     delete:
       tags:
-        - 作品管理
-      summary: 作品削除
-      description: 指定されたIDの作品を削除します
+        - 作品
+      summary: 作品を削除
+      description: 既存の作品を削除する
       security:
-        - BearerAuth: []
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -703,85 +375,20 @@ paths:
         '204':
           description: 削除成功
         '401':
-          description: 認証が必要です
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: 認証が必要
         '403':
-          description: この作品を削除する権限がありません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: 権限がありません
         '404':
           description: 作品が見つかりません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
-  /works/{id}/file:
-    get:
-      tags:
-        - 作品管理
-      summary: 作品ファイル取得
-      description: 指定された作品のファイルデータを取得します
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/octet-stream: {}
-        '302':
-          description: Cloudinaryへのリダイレクト
-        '404':
-          description: ファイルが見つかりません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /works/{id}/thumbnail:
-    get:
-      tags:
-        - 作品管理
-      summary: 作品サムネイル取得
-      description: 指定された作品のサムネイルを取得します
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: 成功
-          content:
-            image/*: {}
-        '302':
-          description: Cloudinaryへのリダイレクト
-        '404':
-          description: サムネイルが見つかりません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  # いいね管理
   /works/{id}/like:
     post:
       tags:
-        - いいね管理
-      summary: いいね追加
-      description: 指定された作品にいいねを追加します
+        - 作品
+      summary: いいねを追加
+      description: 作品にいいねを追加する
       security:
-        - BearerAuth: []
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -790,7 +397,7 @@ paths:
             type: integer
       responses:
         '200':
-          description: 成功
+          description: いいね追加成功
           content:
             application/json:
               schema:
@@ -800,31 +407,49 @@ paths:
                     type: integer
         '400':
           description: 既にいいねしています
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '401':
-          description: 認証が必要です
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: 認証が必要
         '404':
           description: 作品が見つかりません
+
+    delete:
+      tags:
+        - 作品
+      summary: いいねを削除
+      description: 作品からいいねを削除する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: いいね削除成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  likes_count:
+                    type: integer
+        '400':
+          description: いいねしていません
+        '401':
+          description: 認証が必要
+        '404':
+          description: 作品が見つかりません
 
-  /works/{id}/unlike:
-    post:
+  /works/{id}/liked:
+    get:
       tags:
-        - いいね管理
-      summary: いいね削除
-      description: 指定された作品のいいねを削除します
+        - 作品
+      summary: いいね状態を確認
+      description: ユーザーが作品にいいねしているかどうかを確認する
       security:
-        - BearerAuth: []
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -839,34 +464,17 @@ paths:
               schema:
                 type: object
                 properties:
-                  likes_count:
-                    type: integer
-        '400':
-          description: いいねしていません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                  liked:
+                    type: boolean
         '401':
-          description: 認証が必要です
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: 作品が見つかりません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: 認証が必要
 
-  # コメント管理
   /works/{id}/comments:
     get:
       tags:
-        - コメント管理
-      summary: コメント一覧取得
-      description: 指定された作品のコメント一覧を取得します
+        - 作品
+      summary: 作品のコメント一覧を取得
+      description: 作品に投稿されたコメント一覧を取得する
       parameters:
         - name: id
           in: path
@@ -903,18 +511,14 @@ paths:
                     type: integer
         '404':
           description: 作品が見つかりません
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
     post:
       tags:
-        - コメント管理
-      summary: コメント投稿
-      description: 指定された作品にコメントを投稿します
+        - 作品
+      summary: コメントを投稿
+      description: 作品にコメントを投稿する
       security:
-        - BearerAuth: []
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -932,13 +536,9 @@ paths:
               properties:
                 content:
                   type: string
-                is_guest:
-                  type: boolean
-                guest_nickname:
-                  type: string
       responses:
         '201':
-          description: 投稿成功
+          description: コメント投稿成功
           content:
             application/json:
               schema:
@@ -948,37 +548,93 @@ paths:
                     $ref: '#/components/schemas/Comment'
         '400':
           description: 無効なリクエスト
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '401':
-          description: 認証が必要です
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: 認証が必要
         '404':
           description: 作品が見つかりません
+
+  /comments/{id}:
+    put:
+      tags:
+        - コメント
+      summary: コメントを更新
+      description: 既存のコメントを更新する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+      responses:
+        '200':
+          description: 更新成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  comment:
+                    $ref: '#/components/schemas/Comment'
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: コメントが見つかりません
 
-  # タグ管理
+    delete:
+      tags:
+        - コメント
+      summary: コメントを削除
+      description: 既存のコメントを削除する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: コメントが見つかりません
+
   /tags:
     get:
       tags:
-        - タグ管理
-      summary: タグ一覧取得
-      description: タグ一覧を検索条件に基づいて取得します
+        - 作品
+      summary: タグ一覧を取得
+      description: タグの一覧を取得する
       parameters:
         - name: search
           in: query
+          description: 検索キーワード
           schema:
             type: string
         - name: limit
           in: query
+          description: 取得する最大件数
           schema:
             type: integer
             default: 50
@@ -991,3 +647,1397 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Tag'
+
+  /users/{id}:
+    get:
+      tags:
+        - ユーザー情報
+      summary: ユーザー情報を取得
+      description: IDでユーザー情報を取得する
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '404':
+          description: ユーザーが見つかりません
+          
+  /users/{userID}/works:
+    get:
+      tags:
+        - ユーザー情報
+      summary: ユーザーの作品一覧を取得
+      description: 特定のユーザーが投稿した作品一覧を取得する
+      parameters:
+        - name: userID
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  works:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Work'
+                  total:
+                    type: integer
+                  pages:
+                    type: integer
+                  page:
+                    type: integer
+        '404':
+          description: ユーザーが見つかりません
+
+  /users/profile:
+    put:
+      tags:
+        - ユーザー情報
+      summary: プロフィールを更新
+      description: 自分のプロフィール情報を更新する
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                nickname:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+
+  /projects:
+    get:
+      tags:
+        - プロジェクト
+      summary: 自分のプロジェクト一覧を取得
+      description: 自分が参加しているプロジェクトの一覧を取得する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+                  total:
+                    type: integer
+                  pages:
+                    type: integer
+                  page:
+                    type: integer
+        '401':
+          description: 認証が必要
+
+    post:
+      tags:
+        - プロジェクト
+      summary: プロジェクトを作成
+      description: 新しいプロジェクトを作成する
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: '#/components/schemas/Project'
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+
+  /projects/my:
+    get:
+      tags:
+        - プロジェクト
+      summary: 自分が参加しているプロジェクト一覧を取得
+      description: 自分が参加しているプロジェクトの一覧を取得する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+                  total:
+                    type: integer
+                  pages:
+                    type: integer
+                  page:
+                    type: integer
+        '401':
+          description: 認証が必要
+
+  /projects/join:
+    post:
+      tags:
+        - プロジェクト
+      summary: 招待コードでプロジェクトに参加
+      description: 招待コードを使用してプロジェクトに参加する
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - invitation_code
+              properties:
+                invitation_code:
+                  type: string
+      responses:
+        '200':
+          description: 参加成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: '#/components/schemas/Project'
+        '400':
+          description: 無効な招待コード
+        '401':
+          description: 認証が必要
+
+  /projects/{id}:
+    get:
+      tags:
+        - プロジェクト
+      summary: プロジェクトを取得
+      description: IDでプロジェクトを取得する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: '#/components/schemas/Project'
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: プロジェクトが見つかりません
+
+    put:
+      tags:
+        - プロジェクト
+      summary: プロジェクトを更新
+      description: 既存のプロジェクトを更新する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: '#/components/schemas/Project'
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: プロジェクトが見つかりません
+
+    delete:
+      tags:
+        - プロジェクト
+      summary: プロジェクトを削除
+      description: 既存のプロジェクトを削除する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: プロジェクトが見つかりません
+
+  /projects/{id}/members:
+    get:
+      tags:
+        - プロジェクト
+      summary: プロジェクトメンバー一覧を取得
+      description: プロジェクトに参加しているメンバーの一覧を取得する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProjectMember'
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: プロジェクトが見つかりません
+
+  /projects/{id}/members/{memberID}:
+    delete:
+      tags:
+        - プロジェクト
+      summary: メンバーをプロジェクトから削除
+      description: プロジェクトからメンバーを削除する（オーナーのみ実行可能）
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: memberID
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 削除成功
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: プロジェクトまたはメンバーが見つかりません
+
+  /projects/{id}/invitation-code:
+    post:
+      tags:
+        - プロジェクト
+      summary: 招待コードを生成
+      description: プロジェクトの新しい招待コードを生成する（オーナーのみ実行可能）
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invitation_code:
+                    type: string
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: プロジェクトが見つかりません
+
+  /tasks:
+    post:
+      tags:
+        - タスク
+      summary: タスクを作成
+      description: 新しいタスクを作成する
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - project_id
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                project_id:
+                  type: integer
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: '#/components/schemas/Task'
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: プロジェクトが見つかりません
+
+  /tasks/{id}:
+    get:
+      tags:
+        - タスク
+      summary: タスクを取得
+      description: IDでタスクを取得する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: '#/components/schemas/Task'
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: タスクが見つかりません
+
+    put:
+      tags:
+        - タスク
+      summary: タスクを更新
+      description: 既存のタスクを更新する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: '#/components/schemas/Task'
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: タスクが見つかりません
+
+    delete:
+      tags:
+        - タスク
+      summary: タスクを削除
+      description: 既存のタスクを削除する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: タスクが見つかりません
+
+  /tasks/project/{projectID}:
+    get:
+      tags:
+        - タスク
+      summary: プロジェクトのタスク一覧を取得
+      description: プロジェクトに属するタスクの一覧を取得する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: プロジェクトが見つかりません
+
+  /tasks/{id}/works:
+    get:
+      tags:
+        - タスク
+      summary: タスクの作品一覧を取得
+      description: タスクに関連する作品の一覧を取得する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  works:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Work'
+                  total:
+                    type: integer
+                  pages:
+                    type: integer
+                  page:
+                    type: integer
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: タスクが見つかりません
+
+    post:
+      tags:
+        - タスク
+      summary: 作品をタスクに追加
+      description: 既存の作品をタスクに追加する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - work_id
+              properties:
+                work_id:
+                  type: integer
+      responses:
+        '204':
+          description: 追加成功
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: タスクまたは作品が見つかりません
+
+  /tasks/{id}/works/{workID}:
+    delete:
+      tags:
+        - タスク
+      summary: 作品をタスクから削除
+      description: タスクから作品を削除する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: workID
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: タスクまたは作品が見つかりません
+
+  /tasks/orders:
+    put:
+      tags:
+        - タスク
+      summary: タスクの表示順序を更新
+      description: プロジェクト内のタスクの表示順序を更新する
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - task_ids
+                - order_indices
+              properties:
+                task_ids:
+                  type: array
+                  items:
+                    type: integer
+                order_indices:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '204':
+          description: 更新成功
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+
+  /votes:
+    post:
+      tags:
+        - 投票
+      summary: 投票を作成
+      description: 新しい投票を作成する
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - task_id
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                task_id:
+                  type: integer
+                multi_select:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vote:
+                    $ref: '#/components/schemas/Vote'
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: タスクが見つかりません
+
+  /votes/{id}:
+    get:
+      tags:
+        - 投票
+      summary: 投票を取得
+      description: IDで投票を取得する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vote:
+                    $ref: '#/components/schemas/Vote'
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: 投票が見つかりません
+
+    put:
+      tags:
+        - 投票
+      summary: 投票を更新
+      description: 既存の投票を更新する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                multi_select:
+                  type: boolean
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vote:
+                    $ref: '#/components/schemas/Vote'
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: 投票が見つかりません
+
+    delete:
+      tags:
+        - 投票
+      summary: 投票を削除
+      description: 既存の投票を削除する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: 投票が見つかりません
+
+  /votes/task/{taskID}:
+    get:
+      tags:
+        - 投票
+      summary: タスクの投票一覧を取得
+      description: タスクに属する投票の一覧を取得する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskID
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  votes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Vote'
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: タスクが見つかりません
+
+  /votes/{id}/options:
+    post:
+      tags:
+        - 投票
+      summary: 投票オプションを追加
+      description: 投票に新しいオプションを追加する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - option_text
+              properties:
+                option_text:
+                  type: string
+                work_id:
+                  type: integer
+      responses:
+        '201':
+          description: 追加成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  option:
+                    $ref: '#/components/schemas/VoteOption'
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: 投票が見つかりません
+
+  /votes/{id}/options/{optionID}:
+    delete:
+      tags:
+        - 投票
+      summary: 投票オプションを削除
+      description: 投票からオプションを削除する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: optionID
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 削除成功
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: 投票またはオプションが見つかりません
+
+  /votes/{id}/vote:
+    post:
+      tags:
+        - 投票
+      summary: 投票する
+      description: 投票のオプションに投票する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - option_id
+              properties:
+                option_id:
+                  type: integer
+      responses:
+        '204':
+          description: 投票成功
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: 投票またはオプションが見つかりません
+
+  /votes/{id}/vote/{optionID}:
+    delete:
+      tags:
+        - 投票
+      summary: 投票を取り消す
+      description: 投票したオプションへの投票を取り消す
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: optionID
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 取り消し成功
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: 投票またはオプションが見つかりません
+
+  /votes/{id}/user-votes:
+    get:
+      tags:
+        - 投票
+      summary: ユーザーの投票を取得
+      description: 投票に対する自分の投票状況を取得する
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  votes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VoteResponse'
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: 投票が見つかりません
+
+  /votes/{id}/close:
+    post:
+      tags:
+        - 投票
+      summary: 投票を終了
+      description: 投票を終了状態にする
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 終了成功
+        '400':
+          description: 無効なリクエスト
+        '401':
+          description: 認証が必要
+        '403':
+          description: 権限がありません
+        '404':
+          description: 投票が見つかりません
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        nickname:
+          type: string
+        bio:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Work:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        pde_content:
+          type: string
+        js_content:
+          type: string
+        thumbnail_url:
+          type: string
+        thumbnail_type:
+          type: string
+        code_shared:
+          type: boolean
+        views:
+          type: integer
+        user_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        likes_count:
+          type: integer
+        comments_count:
+          type: integer
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        work_id:
+          type: integer
+        user_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        invitation_code:
+          type: string
+        owner_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        owner:
+          $ref: '#/components/schemas/User'
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+
+    ProjectMember:
+      type: object
+      properties:
+        project_id:
+          type: integer
+        user_id:
+          type: integer
+        is_owner:
+          type: boolean
+        joined_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        project_id:
+          type: integer
+        order_index:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        works:
+          type: array
+          items:
+            $ref: '#/components/schemas/Work'
+        votes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Vote'
+
+    Vote:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        task_id:
+          type: integer
+        multi_select:
+          type: boolean
+        is_active:
+          type: boolean
+        created_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+        creator:
+          $ref: '#/components/schemas/User'
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoteOption'
+
+    VoteOption:
+      type: object
+      properties:
+        id:
+          type: integer
+        vote_id:
+          type: integer
+        option_text:
+          type: string
+        work_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        work:
+          $ref: '#/components/schemas/Work'
+        vote_count:
+          type: integer
+
+    VoteResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        vote_id:
+          type: integer
+        option_id:
+          type: integer
+        user_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
