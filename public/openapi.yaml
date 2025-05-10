@@ -1613,10 +1613,9 @@ components:
         pde_content:
           type: string
           description: PDEコード
-        thumbnail:
+        thumbnail_url:
           type: string
-          format: binary
-          description: サムネイル画像（PNG, JPEG, GIF, WebP）
+          description: サムネイル画像のURL
         code_shared:
           type: boolean
           default: false
@@ -1637,10 +1636,9 @@ components:
         pde_content:
           type: string
           description: PDEコード
-        thumbnail:
+        thumbnail_url:
           type: string
-          format: binary
-          description: サムネイル画像（PNG, JPEG, GIF, WebP）
+          description: サムネイル画像のURL
         code_shared:
           type: boolean
           description: コードを公開するかどうか
